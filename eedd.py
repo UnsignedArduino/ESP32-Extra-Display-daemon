@@ -34,7 +34,7 @@ class ESP32ExtraDisplayDaemon:
         """
         logger.info(f"Opening port {self.path}")
         with Serial(self.path, BAUD_RATE) as port:
-            logger.info(f"Successfully opened port {port}")
+            logger.info(f"Successfully opened port {self.path}")
             while True:
                 image = ImageGrab.grab()
                 image.thumbnail(SIZE)
