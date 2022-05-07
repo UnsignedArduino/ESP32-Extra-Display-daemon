@@ -3,6 +3,8 @@ from argparse import ArgumentParser
 
 from serial.tools.list_ports import comports
 
+import eedd
+from eedd import ESP32ExtraDisplayDaemon
 from logger import create_logger
 
 parser = ArgumentParser(description="Daemon for the ESP32 Extra Display.")
@@ -23,6 +25,7 @@ logger.debug(f"Arguments received: {args}")
 if args.debug:
     all_loggers = (
         logger,
+        eedd.logger
     )
 
     for l in all_loggers:
@@ -62,5 +65,8 @@ elif args.connect:
             exit(1)
         port_path = ports[port_path - 1].device
     logger.info(f"Connecting to {port_path}")
+
+    eedd = ESP32ExtraDisplayDaemon(port_path)
+    eedd.run()
 else:
     logger.warning("Nothing to do!")
