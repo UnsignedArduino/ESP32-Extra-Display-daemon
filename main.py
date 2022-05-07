@@ -8,7 +8,7 @@ from eedd import ESP32ExtraDisplayDaemon
 from logger import create_logger
 
 parser = ArgumentParser(description="Daemon for the ESP32 Extra Display.")
-parser.add_argument("-l", "--list-ports", dest="list_ports",
+parser.add_argument("-lp", "--list-ports", dest="list_ports",
                     action="store_true",
                     help="List serial ports and exit.")
 parser.add_argument("-c", "--connect", dest="connect", metavar="PORT",

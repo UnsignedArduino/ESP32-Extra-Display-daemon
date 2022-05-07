@@ -45,7 +45,6 @@ class ESP32ExtraDisplayDaemon:
                 image_size = buffer.tell()
                 buffer.seek(0)
 
-                port.write(f"{image_size}".encode())
-                port.write(buffer.read())
+                port.write(f"{image_size}".encode() + buffer.read())
 
                 sleep(SLEEP_TIME)
