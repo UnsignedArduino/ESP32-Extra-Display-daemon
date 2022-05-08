@@ -107,6 +107,9 @@ elif args.connect:
 
         logger.debug(f"Looking through {len(hwnds)} window handles")
 
+        if window_handle.isnumeric():
+            window_handle = int(window_handle)
+
         if isinstance(window_handle, str) or window_handle < len(hwnds):
             for index, hwnd in enumerate(hwnds):
                 title = win32gui.GetWindowText(hwnd)

@@ -56,10 +56,13 @@ class ESP32ExtraDisplayDaemon:
                 saveBitMap = win32ui.CreateBitmap()
                 saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
 
+                # https://stackoverflow.com/a/59016194/10291933
+                PW_RENDERFULLCONTENT = 0x00000002
+
                 saveDC.SelectObject(saveBitMap)
                 result = windll.user32.PrintWindow(self.hwnd,
                                                    saveDC.GetSafeHdc(),
-                                                   0)
+                                                   PW_RENDERFULLCONTENT)
 
                 bmpinfo = saveBitMap.GetInfo()
                 bmpstr = saveBitMap.GetBitmapBits(True)
@@ -74,13 +77,16 @@ class ESP32ExtraDisplayDaemon:
                 mfcDC.DeleteDC()
                 win32gui.ReleaseDC(self.hwnd, hwndDC)
             except pywintypes_error:
+                self.hwnd = None
+                logger.error(f"Window {self.hwnd} destroyed, resorting to "
+                             f"full screen")
                 image = ImageGrab.grab()
         else:
             image = ImageGrab.grab()
         image.thumbnail(SIZE)
 
         sized = Image.new("RGB", SIZE, (0, 0, 0))
-        sized.paste(image.convert("RGB"), image.getbbox())
+        sized.paste(image)
 
         return sized
 
