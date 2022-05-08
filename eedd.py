@@ -1,9 +1,15 @@
 import logging
+from ctypes import windll
 from io import BytesIO
 from time import sleep
+from typing import Optional
 
+import win32gui
+import win32ui
 from PIL import ImageGrab
+from PIL import Image
 from serial import Serial
+from win32gui import error as pywintypes_error
 
 from logger import create_logger
 
@@ -19,14 +25,64 @@ class ESP32ExtraDisplayDaemon:
     The class for the ESP32 Extra Display daemon.
     """
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, hwnd: Optional[int] = None):
         """
         Initialize the ESP32 Extra Display daemon.
 
         :param path: The port to the device. Will not be opened until run().
+        :param hwnd: A handle to a window to get an image from instead of the
+         main screen.
         """
         logger.debug(f"Assigned port: {path}")
         self.path = path
+        self.hwnd = hwnd
+        if hwnd:
+            logger.debug(f"Assigned window: {hwnd}")
+
+    def get_image(self) -> Image.Image:
+        """
+        Gets an image to show.
+        """
+        if self.hwnd:
+            try:
+                left, top, right, bot = win32gui.GetWindowRect(self.hwnd)
+                w = right - left
+                h = bot - top
+
+                hwndDC = win32gui.GetWindowDC(self.hwnd)
+                mfcDC = win32ui.CreateDCFromHandle(hwndDC)
+                saveDC = mfcDC.CreateCompatibleDC()
+
+                saveBitMap = win32ui.CreateBitmap()
+                saveBitMap.CreateCompatibleBitmap(mfcDC, w, h)
+
+                saveDC.SelectObject(saveBitMap)
+                result = windll.user32.PrintWindow(self.hwnd,
+                                                   saveDC.GetSafeHdc(),
+                                                   0)
+
+                bmpinfo = saveBitMap.GetInfo()
+                bmpstr = saveBitMap.GetBitmapBits(True)
+
+                image = Image.frombuffer("RGB",
+                                         (bmpinfo["bmWidth"],
+                                          bmpinfo["bmHeight"]),
+                                         bmpstr, "raw", "BGRX", 0, 1)
+
+                win32gui.DeleteObject(saveBitMap.GetHandle())
+                saveDC.DeleteDC()
+                mfcDC.DeleteDC()
+                win32gui.ReleaseDC(self.hwnd, hwndDC)
+            except pywintypes_error:
+                image = ImageGrab.grab()
+        else:
+            image = ImageGrab.grab()
+        image.thumbnail(SIZE)
+
+        sized = Image.new("RGB", SIZE, (0, 0, 0))
+        sized.paste(image.convert("RGB"), image.getbbox())
+
+        return sized
 
     def run(self):
         """
@@ -36,8 +92,7 @@ class ESP32ExtraDisplayDaemon:
         with Serial(self.path, BAUD_RATE) as port:
             logger.info(f"Successfully opened port {self.path}")
             while True:
-                image = ImageGrab.grab()
-                image.thumbnail(SIZE)
+                image = self.get_image()
 
                 buffer = BytesIO()
                 image.save(buffer, "JPEG")
